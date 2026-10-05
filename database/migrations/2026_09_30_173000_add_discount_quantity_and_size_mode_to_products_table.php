@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->unsignedInteger('original_price')->nullable()->after('price');
+            $table->string('size_mode')->default('letter')->after('sizes');
+            $table->unsignedInteger('quantity')->default(10)->after('size_mode');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->dropColumn(['original_price', 'size_mode', 'quantity']);
+        });
+    }
+};
