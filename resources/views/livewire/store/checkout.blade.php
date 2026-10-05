@@ -40,11 +40,31 @@
             </div>
             <div>
                 <label for="address">Address</label>
-                <input id="address" type="text" wire:model="address" autocomplete="street-address">
+                <input id="address" type="text" wire:model="address" autocomplete="street-address" placeholder="House/Apartment number, street name">
                 @error('address') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label for="city">City</label>
+                <label for="shipping_location">Delivery Location / Coverage Area</label>
+                <select id="shipping_location" wire:model.live="shipping_location_id" style="width:100%;padding:0.75rem 0.9rem;border:1px solid var(--line);border-radius:4px;font-size:0.95rem;background:#fff;color:var(--brown-deep);">
+                    <option value="">— Select your delivery location —</option>
+                    @foreach ($shippingLocations as $loc)
+                        <option value="{{ $loc->id }}">
+                            {{ $loc->name }} ({{ $loc->formattedFee() }}{{ $loc->estimated_days ? ' · ' . $loc->estimated_days : '' }})
+                        </option>
+                    @endforeach
+                </select>
+                @error('shipping_location_id') <p class="form-error">{{ $message }}</p> @enderror
+                @if ($selectedLocation)
+                    <p class="note" style="margin-top:0.35rem;font-size:0.8rem;color:#78695d;">
+                        Selected: <strong>{{ $selectedLocation->name }}</strong> &bull; Delivery fee: <strong>{{ $selectedLocation->formattedFee() }}</strong>
+                        @if ($selectedLocation->estimated_days)
+                            &bull; Est. Transit: {{ $selectedLocation->estimated_days }}
+                        @endif
+                    </p>
+                @endif
+            </div>
+            <div>
+                <label for="city">City / State</label>
                 <input id="city" type="text" wire:model="city" autocomplete="address-level2">
                 @error('city') <p class="form-error">{{ $message }}</p> @enderror
             </div>
@@ -162,16 +182,36 @@
                             <code style="font-family:monospace;color:#221f1e;">{{ $confirmedOrder->payment_reference }}</code>
                         </div>
                     @endif
+                    @if ($confirmedOrder->shipping_location_name)
+                        <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;">
+                            <span>Delivery Zone:</span>
+                            <span style="color:#221f1e;font-weight:500;">{{ $confirmedOrder->shipping_location_name }}</span>
+                        </div>
+                    @endif
                     <div style="display:flex;justify-content:space-between;padding-top:0.35rem;border-top:1px solid #eee7dc;">
                         <span>Amount Paid:</span>
                         <strong style="color:#221f1e;">{{ $confirmedOrder->formattedTotal() }}</strong>
                     </div>
                 </div>
+
+                <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin:1.5rem 0 0.5rem;">
+                    <a class="btn btn-accent" href="{{ route('orders.receipt', $confirmedOrder) }}" style="display:inline-flex;align-items:center;gap:0.4rem;">
+                        <span>View Order Receipt &rarr;</span>
+                    </a>
+                    <a class="btn btn-light" href="{{ route('orders.receipt.pdf', $confirmedOrder) }}" target="_blank" style="display:inline-flex;align-items:center;gap:0.4rem;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Download PDF</span>
+                    </a>
+                </div>
             @else
                 <p>Your order is confirmed. A note is on its way to your inbox.</p>
             @endif
             <br>
-            <a class="btn btn-light" href="{{ route('shop') }}" wire:navigate>Continue browsing</a>
+            <a class="btn btn-ghost" href="{{ route('shop') }}" wire:navigate>Continue browsing</a>
         </div>
     </div>
 </main>

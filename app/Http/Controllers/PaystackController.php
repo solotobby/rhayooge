@@ -63,7 +63,7 @@ class PaystackController extends Controller
         // Clear cart
         app(CartManager::class)->clear();
 
-        return redirect()->route('checkout', ['paid' => 1, 'order_id' => $order->id]);
+        return redirect()->route('orders.receipt', $order)->with('success', 'Payment successful! Your order has been placed.');
     }
 
     /**

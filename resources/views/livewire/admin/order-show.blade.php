@@ -35,6 +35,13 @@
         <aside class="admin-panel">
             <h2>Client</h2>
             <p>{{ $order->name }}<br>{{ $order->email }}<br>{{ $order->phone }}</p>
+            <p class="admin-mute" style="margin-top:0.75rem;">
+                <strong>Delivery Address:</strong><br>
+                {{ $order->address }}, {{ $order->city }}
+                @if ($order->shipping_location_name || $order->shippingLocation)
+                    <br><span style="color:var(--brown);font-weight:600;">Zone: {{ $order->shipping_location_name ?? $order->shippingLocation->name }}</span>
+                @endif
+            </p>
             <p class="admin-mute" style="margin-top:1rem">
                 Payment: <strong>{{ ucfirst($order->payment_method) }}</strong> ({{ ucfirst($order->payment_status) }})
                 @if ($order->payment_reference)
@@ -42,6 +49,15 @@
                 @endif
                 <br>Date: {{ $order->created_at->format('d M Y, H:i') }}
             </p>
+
+            <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <a href="{{ route('orders.receipt', $order) }}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem;padding:0.4rem 0.8rem;">
+                    View Receipt &rarr;
+                </a>
+                <a href="{{ route('orders.receipt.pdf', $order) }}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem;padding:0.4rem 0.8rem;">
+                    Download PDF
+                </a>
+            </div>
 
             <form class="form" wire:submit="updateStatus" style="margin-top:1.6rem">
                 <label for="o-status">Status</label>

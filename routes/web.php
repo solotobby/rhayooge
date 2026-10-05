@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\OrderReceiptController;
 use App\Http\Controllers\PaystackController;
 use App\Http\Controllers\SocialAuthController;
 use App\Livewire\Admin\Clients;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Executives;
+use App\Livewire\Admin\Logistics;
 use App\Livewire\Admin\Login;
 use App\Livewire\Admin\Messages;
 use App\Livewire\Admin\MessageShow;
@@ -30,6 +32,8 @@ Route::get('/shop/{product}', ProductShow::class)->name('product');
 Route::get('/about', About::class)->name('about');
 Route::get('/contact', Contact::class)->name('contact');
 Route::get('/checkout', Checkout::class)->name('checkout');
+Route::get('/orders/{order}/receipt', [OrderReceiptController::class, 'show'])->name('orders.receipt');
+Route::get('/orders/{order}/receipt/pdf', [OrderReceiptController::class, 'downloadPdf'])->name('orders.receipt.pdf');
 Route::get('/account', Account::class)->name('account');
 
 // Paystack Gateway Endpoints
@@ -66,5 +70,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/messages', Messages::class)->name('messages');
         Route::get('/messages/{message}', MessageShow::class)->name('messages.show');
         Route::get('/clients', Clients::class)->name('clients');
+        Route::get('/logistics', Logistics::class)->name('logistics');
     });
 });

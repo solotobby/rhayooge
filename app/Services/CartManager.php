@@ -123,19 +123,23 @@ class CartManager
         return $this->lines()->sum('line_total');
     }
 
-    public function delivery(): int
+    public function delivery(?int $customFee = null): int
     {
         $subtotal = $this->subtotal();
 
-        if ($subtotal === 0 || $subtotal >= 50000) {
+        if ($subtotal === 0) {
             return 0;
         }
 
-        return 3500;
+        if ($customFee !== null) {
+            return $customFee;
+        }
+
+        return 5000;
     }
 
-    public function total(): int
+    public function total(?int $customDeliveryFee = null): int
     {
-        return $this->subtotal() + $this->delivery();
+        return $this->subtotal() + $this->delivery($customDeliveryFee);
     }
 }

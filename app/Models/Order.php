@@ -12,6 +12,7 @@ class Order extends Model
 
     protected $fillable = [
         'user_id', 'business_executive_id', 'be_code', 'name', 'email', 'phone', 'address', 'city',
+        'shipping_location_id', 'shipping_location_name',
         'payment_method', 'payment_reference', 'payment_status', 'paid_at',
         'subtotal', 'delivery', 'total', 'status',
     ];
@@ -23,6 +24,11 @@ class Order extends Model
     public function isPaid(): bool
     {
         return $this->payment_status === 'paid';
+    }
+
+    public function shippingLocation(): BelongsTo
+    {
+        return $this->belongsTo(ShippingLocation::class, 'shipping_location_id');
     }
 
     public function user(): BelongsTo

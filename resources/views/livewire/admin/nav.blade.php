@@ -40,6 +40,9 @@
             <a href="{{ route('admin.executives') }}" class="{{ request()->routeIs('admin.executives*') ? 'active' : '' }}" wire:navigate wire:click="$set('open', false)">
                 Executives
             </a>
+            <a href="{{ route('admin.logistics') }}" class="{{ request()->routeIs('admin.logistics*') ? 'active' : '' }}" wire:navigate wire:click="$set('open', false)">
+                Logistics & Rates
+            </a>
             <a href="{{ route('admin.messages') }}" class="{{ request()->routeIs('admin.messages*') ? 'active' : '' }}" wire:navigate wire:click="$set('open', false)">
                 Notes
                 @if ($unread)

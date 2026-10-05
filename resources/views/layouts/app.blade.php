@@ -14,7 +14,11 @@
 <body class="{{ ! empty($home) ? 'home' : '' }}{{ ! empty($authLayout) ? ' auth-screen' : '' }}" data-page="{{ ! empty($home) ? 'home' : 'page' }}">
     <livewire:store.chrome />
 
-    {{ $slot }}
+    @if (isset($slot))
+        {{ $slot }}
+    @else
+        @yield('content')
+    @endif
 
     @unless (! empty($authLayout))
     <footer class="site-footer">

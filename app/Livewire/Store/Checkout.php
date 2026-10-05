@@ -5,6 +5,7 @@ namespace App\Livewire\Store;
 use App\Models\BeCommission;
 use App\Models\BusinessExecutive;
 use App\Models\Order;
+use App\Models\ShippingLocation;
 use App\Services\CartManager;
 use App\Services\PaystackService;
 use App\Support\Phone;
@@ -29,6 +30,8 @@ class Checkout extends Component
 
     public string $city = 'Lagos';
 
+    public ?int $shipping_location_id = null;
+
     public string $payment = 'paystack'; // 'paystack', 'delivery', 'transfer'
 
     public bool $placed = false;
@@ -49,14 +52,42 @@ class Checkout extends Component
             $this->phone = $user->phone ?? '';
         }
 
+        // Default to first active shipping location
+        $firstLocation = ShippingLocation::active()->orderBy('sort_order')->first();
+        if ($firstLocation) {
+            $this->shipping_location_id = $firstLocation->id;
+        }
+
         // Check if returning from a successful Paystack transaction
         if ($this->paid === '1' && $this->order_id) {
-            $order = Order::query()->find($this->order_id);
+            $order = Order::query()->with('items.product', 'shippingLocation')->find($this->order_id);
             if ($order && $order->payment_status === 'paid') {
                 $this->confirmedOrder = $order;
                 $this->placed = true;
             }
         }
+    }
+
+    public function getSelectedLocationProperty(): ?ShippingLocation
+    {
+        return $this->shipping_location_id
+            ? ShippingLocation::find($this->shipping_location_id)
+            : null;
+    }
+
+    public function getDeliveryFeeProperty(): int
+    {
+        $cart = app(CartManager::class);
+        $customFee = $this->selectedLocation ? (int) $this->selectedLocation->fee : null;
+
+        return $cart->delivery($customFee);
+    }
+
+    public function getTotalProperty(): int
+    {
+        $cart = app(CartManager::class);
+
+        return $cart->subtotal() + $this->deliveryFee;
     }
 
     public function placeOrder()
@@ -69,7 +100,11 @@ class Checkout extends Component
             'phone' => 'required',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:80',
+            'shipping_location_id' => 'required|exists:shipping_locations,id',
             'payment' => 'required|in:paystack,card,delivery,transfer',
+        ], [
+            'shipping_location_id.required' => 'Please select your delivery location so we can calculate shipping.',
+            'shipping_location_id.exists' => 'The selected delivery location is invalid.',
         ]);
 
         if (! Phone::isValid($this->phone)) {
@@ -85,6 +120,10 @@ class Checkout extends Component
 
             return;
         }
+
+        $selectedLoc = $this->selectedLocation;
+        $deliveryFee = $this->deliveryFee;
+        $orderTotal = $this->total;
 
         // Identify all active executives referenced by items in the cart
         $beCodes = $lines->pluck('referral_code')->filter()->unique()->values();
@@ -123,12 +162,14 @@ class Checkout extends Component
                 'phone' => Phone::normalize($this->phone),
                 'address' => $this->address,
                 'city' => $this->city,
+                'shipping_location_id' => $selectedLoc?->id,
+                'shipping_location_name' => $selectedLoc?->name,
                 'payment_method' => 'paystack',
                 'payment_reference' => $reference,
                 'payment_status' => 'pending',
                 'subtotal' => $cart->subtotal(),
-                'delivery' => $cart->delivery(),
-                'total' => $cart->total(),
+                'delivery' => $deliveryFee,
+                'total' => $orderTotal,
                 'status' => 'pending',
             ]);
 
@@ -159,6 +200,7 @@ class Checkout extends Component
                         'order_id' => $order->id,
                         'customer_name' => $this->name,
                         'customer_phone' => Phone::normalize($this->phone),
+                        'shipping_location' => $selectedLoc?->name,
                     ],
                 ]);
 
@@ -186,12 +228,14 @@ class Checkout extends Component
             'phone' => Phone::normalize($this->phone),
             'address' => $this->address,
             'city' => $this->city,
+            'shipping_location_id' => $selectedLoc?->id,
+            'shipping_location_name' => $selectedLoc?->name,
             'payment_method' => $this->payment,
             'payment_reference' => null,
             'payment_status' => $this->payment === 'delivery' ? 'unpaid' : 'pending',
             'subtotal' => $cart->subtotal(),
-            'delivery' => $cart->delivery(),
-            'total' => $cart->total(),
+            'delivery' => $deliveryFee,
+            'total' => $orderTotal,
             'status' => 'confirmed',
         ]);
 
@@ -235,7 +279,7 @@ class Checkout extends Component
         }
 
         $cart->clear();
-        $this->confirmedOrder = $order;
+        $this->confirmedOrder = $order->load('items.product', 'shippingLocation');
         $this->placed = true;
         $this->dispatch('cart-updated');
     }
@@ -247,8 +291,10 @@ class Checkout extends Component
         return view('livewire.store.checkout', [
             'cartItems' => $cart->lines(),
             'subtotal' => $cart->subtotal(),
-            'delivery' => $cart->delivery(),
-            'total' => $cart->total(),
+            'delivery' => $this->deliveryFee,
+            'total' => $this->total,
+            'shippingLocations' => ShippingLocation::active()->orderBy('sort_order')->get(),
+            'selectedLocation' => $this->selectedLocation,
         ]);
     }
 }
