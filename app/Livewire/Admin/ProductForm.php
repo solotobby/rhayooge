@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -339,14 +340,29 @@ class ProductForm extends Component
 
         $folder = public_path('uploads/products');
         if (! file_exists($folder)) {
-            mkdir($folder, 0755, true);
+            File::makeDirectory($folder, 0755, true, true);
         }
 
         $extension = $this->primaryUpload->getClientOriginalExtension() ?: 'jpg';
         $safeName = Str::slug(Str::ascii($this->name ?: 'piece')) ?: 'piece';
         $filename = $safeName . '-' . Str::random(8) . '.' . strtolower($extension);
+        $target = $folder . '/' . $filename;
 
-        $this->primaryUpload->move($folder, $filename);
+        $sourcePath = method_exists($this->primaryUpload, 'getRealPath') && file_exists($this->primaryUpload->getRealPath())
+            ? $this->primaryUpload->getRealPath()
+            : $this->primaryUpload->path();
+
+        File::copy($sourcePath, $target);
+        @chmod($target, 0664);
+
+        try {
+            if (method_exists($this->primaryUpload, 'delete')) {
+                $this->primaryUpload->delete();
+            }
+        } catch (\Throwable $e) {
+            // ignore temp cleanup error
+        }
+
         $this->image = '/uploads/products/' . $filename;
         $this->primaryUpload = null;
     }
@@ -377,14 +393,30 @@ class ProductForm extends Component
 
         $folder = public_path('uploads/products');
         if (! file_exists($folder)) {
-            mkdir($folder, 0755, true);
+            File::makeDirectory($folder, 0755, true, true);
         }
 
         foreach ($this->additionalUploads as $file) {
             $extension = $file->getClientOriginalExtension() ?: 'jpg';
             $safeName = Str::slug(Str::ascii($this->name ?: 'piece')) ?: 'piece';
             $filename = $safeName . '-angle-' . Str::random(8) . '.' . strtolower($extension);
-            $file->move($folder, $filename);
+            $target = $folder . '/' . $filename;
+
+            $sourcePath = method_exists($file, 'getRealPath') && file_exists($file->getRealPath())
+                ? $file->getRealPath()
+                : $file->path();
+
+            File::copy($sourcePath, $target);
+            @chmod($target, 0664);
+
+            try {
+                if (method_exists($file, 'delete')) {
+                    $file->delete();
+                }
+            } catch (\Throwable $e) {
+                // ignore temp cleanup error
+            }
+
             $this->additionalImages[] = '/uploads/products/' . $filename;
         }
 
