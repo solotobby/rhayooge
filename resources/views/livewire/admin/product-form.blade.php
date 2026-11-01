@@ -154,8 +154,8 @@
                             <input
                                 id="p-original-price"
                                 type="number"
-                                min="500"
-                                step="500"
+                                min="100"
+                                step="100"
                                 wire:model.live.debounce.300ms="original_price"
                                 placeholder="e.g. 85000"
                             >

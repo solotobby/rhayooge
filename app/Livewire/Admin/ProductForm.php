@@ -527,16 +527,16 @@ class ProductForm extends Component
             }
             $this->computePrice();
             $this->validate([
-                'original_price' => 'required|integer|min:500',
+                'original_price' => 'required|integer|min:100',
                 'discount_percent' => 'required|integer|min:0|max:95',
-                'price' => 'required|integer|min:500',
+                'price' => 'required|integer|min:100',
                 'commission_type' => 'required|in:percent,percentage,fixed',
                 'commission_rate' => 'required|integer|min:1',
             ], [
                 'original_price.required' => 'Please enter the retail/original price.',
-                'original_price.min' => 'The price must be at least ₦500.',
+                'original_price.min' => 'The price must be at least ₦100.',
                 'price.required' => 'The selling price is required.',
-                'price.min' => 'The selling price must be at least ₦500.',
+                'price.min' => 'The selling price must be at least ₦100.',
                 'commission_rate.required' => 'The commission rate is required.',
                 'commission_rate.min' => 'The commission rate must be at least 1.',
             ]);
