@@ -7,10 +7,13 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts::admin')]
 class ProductForm extends Component
 {
+    use WithFileUploads;
+
     public int $currentStep = 1;
 
     public ?int $productId = null;
@@ -61,9 +64,15 @@ class ProductForm extends Component
     // Step 4: Media & Imagery
     public string $image = '';
 
+    public $primaryUpload = null;
+
     public array $additionalImages = [];
 
+    public $additionalUploads = [];
+
     public string $newImageUrl = '';
+
+    public bool $useUrlInput = false;
 
     public array $categories = ['Dresses', 'Tops', 'Bottoms', 'Outerwear', 'Sets', 'Accessories'];
 
@@ -310,6 +319,78 @@ class ProductForm extends Component
     }
 
     // Step 4 handlers: Media
+    public function updatedPrimaryUpload(): void
+    {
+        $this->validate([
+            'primaryUpload' => 'required|file|image|max:102400',
+        ], [
+            'primaryUpload.image' => 'The file must be an image (JPEG, PNG, WEBP, AVIF, GIF).',
+            'primaryUpload.max' => 'The image size may not exceed 100MB.',
+        ]);
+
+        $this->storePrimaryUpload();
+    }
+
+    public function storePrimaryUpload(): void
+    {
+        if (! $this->primaryUpload) {
+            return;
+        }
+
+        $folder = public_path('uploads/products');
+        if (! file_exists($folder)) {
+            mkdir($folder, 0755, true);
+        }
+
+        $extension = $this->primaryUpload->getClientOriginalExtension() ?: 'jpg';
+        $safeName = Str::slug(Str::ascii($this->name ?: 'piece')) ?: 'piece';
+        $filename = $safeName . '-' . Str::random(8) . '.' . strtolower($extension);
+
+        $this->primaryUpload->move($folder, $filename);
+        $this->image = '/uploads/products/' . $filename;
+        $this->primaryUpload = null;
+    }
+
+    public function removePrimaryImage(): void
+    {
+        $this->image = '';
+        $this->primaryUpload = null;
+    }
+
+    public function updatedAdditionalUploads(): void
+    {
+        $this->validate([
+            'additionalUploads.*' => 'required|file|image|max:102400',
+        ], [
+            'additionalUploads.*.image' => 'Each file must be an image (JPEG, PNG, WEBP, AVIF, GIF).',
+            'additionalUploads.*.max' => 'Each image size may not exceed 100MB.',
+        ]);
+
+        $this->storeAdditionalUploads();
+    }
+
+    public function storeAdditionalUploads(): void
+    {
+        if (empty($this->additionalUploads)) {
+            return;
+        }
+
+        $folder = public_path('uploads/products');
+        if (! file_exists($folder)) {
+            mkdir($folder, 0755, true);
+        }
+
+        foreach ($this->additionalUploads as $file) {
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            $safeName = Str::slug(Str::ascii($this->name ?: 'piece')) ?: 'piece';
+            $filename = $safeName . '-angle-' . Str::random(8) . '.' . strtolower($extension);
+            $file->move($folder, $filename);
+            $this->additionalImages[] = '/uploads/products/' . $filename;
+        }
+
+        $this->additionalUploads = [];
+    }
+
     public function addAdditionalImage(): void
     {
         $clean = trim($this->newImageUrl);
@@ -426,8 +507,11 @@ class ProductForm extends Component
                 'sizeStocks' => 'required|array',
             ]);
         } elseif ($step === 4) {
+            $this->storePrimaryUpload();
             $this->validate([
                 'image' => 'required|string|max:600',
+            ], [
+                'image.required' => 'Please upload a primary lead cover image for this piece.',
             ]);
         }
 
@@ -439,6 +523,9 @@ class ProductForm extends Component
         if ($overrideStatus && in_array($overrideStatus, ['published', 'draft'], true)) {
             $this->status = $overrideStatus;
         }
+
+        $this->storePrimaryUpload();
+        $this->storeAdditionalUploads();
 
         // Validate all steps
         $this->validateStep(1);

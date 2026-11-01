@@ -106,6 +106,10 @@ class Product extends Model
             return 'https://lh3.googleusercontent.com/d/'.$matches[1];
         }
 
+        if (str_starts_with($url, 'uploads/') || str_starts_with($url, 'storage/')) {
+            return '/'.$url;
+        }
+
         return $url;
     }
 
