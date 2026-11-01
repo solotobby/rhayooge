@@ -513,6 +513,13 @@ class ProductForm extends Component
                 'category' => 'required|in:Dresses,Tops,Bottoms,Outerwear,Sets,Accessories',
                 'description' => 'required|string|min:15|max:2000',
                 'status' => 'required|in:published,draft',
+            ], [
+                'name.required' => 'Please enter the piece title.',
+                'slug.required' => 'A URL slug is required.',
+                'slug.unique' => 'This URL slug is already taken. Please change the title or edit the slug.',
+                'category.required' => 'Please select a collection category.',
+                'description.required' => 'Please provide a story & fabric description.',
+                'description.min' => 'The description must be at least 15 characters long.',
             ]);
         } elseif ($step === 2) {
             if (empty($this->original_price) && (int) $this->price > 0) {
@@ -525,6 +532,13 @@ class ProductForm extends Component
                 'price' => 'required|integer|min:500',
                 'commission_type' => 'required|in:percent,percentage,fixed',
                 'commission_rate' => 'required|integer|min:1',
+            ], [
+                'original_price.required' => 'Please enter the retail/original price.',
+                'original_price.min' => 'The price must be at least ₦500.',
+                'price.required' => 'The selling price is required.',
+                'price.min' => 'The selling price must be at least ₦500.',
+                'commission_rate.required' => 'The commission rate is required.',
+                'commission_rate.min' => 'The commission rate must be at least 1.',
             ]);
         } elseif ($step === 3) {
             foreach ($this->selectedSizes as $sz) {
@@ -537,13 +551,16 @@ class ProductForm extends Component
                 'sizeMode' => 'required|string|in:letter,number,custom',
                 'selectedSizes' => 'required|array|min:1',
                 'sizeStocks' => 'required|array',
+            ], [
+                'selectedSizes.required' => 'Please select at least one size for this piece.',
+                'selectedSizes.min' => 'Please select at least one size for this piece.',
             ]);
         } elseif ($step === 4) {
             $this->storePrimaryUpload();
             $this->validate([
                 'image' => 'required|string|max:600',
             ], [
-                'image.required' => 'Please upload a primary lead cover image for this piece.',
+                'image.required' => 'Please upload or provide a primary lead cover image for this piece.',
             ]);
         }
 
@@ -559,13 +576,22 @@ class ProductForm extends Component
         $this->storePrimaryUpload();
         $this->storeAdditionalUploads();
 
-        // Validate all steps
-        $this->validateStep(1);
-        $this->validateStep(2);
-        $this->validateStep(3);
-        $this->validateStep(4);
+        try {
+            // Validate all steps
+            $this->validateStep(1);
+            $this->validateStep(2);
+            $this->validateStep(3);
+            if ($this->status !== 'draft') {
+                $this->validateStep(4);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->dispatch('toast', message: 'Cannot save: ' . $firstError);
+            $this->dispatch('form-error', message: $firstError);
+            throw $e;
+        }
 
-        $normalizedPrimary = Product::normalizeImageUrl($this->image);
+        $normalizedPrimary = Product::normalizeImageUrl($this->image ?: asset('assets/brand-guide.png'));
         $allImages = array_values(array_unique(array_filter(array_merge([$normalizedPrimary], $this->additionalImages))));
 
         $cleanSizeInventory = [];
@@ -598,12 +624,18 @@ class ProductForm extends Component
             'newest' => $this->newest,
         ];
 
-        if ($this->productId) {
-            Product::query()->findOrFail($this->productId)->update($payload);
-            session()->flash('admin_toast', "Piece updated as {$this->status}.");
-        } else {
-            Product::query()->create($payload);
-            session()->flash('admin_toast', "Piece added to collection as {$this->status}.");
+        try {
+            if ($this->productId) {
+                Product::query()->findOrFail($this->productId)->update($payload);
+                session()->flash('admin_toast', "Piece updated as {$this->status}.");
+            } else {
+                Product::query()->create($payload);
+                session()->flash('admin_toast', "Piece added to collection as {$this->status}.");
+            }
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to save piece: ' . $e->getMessage());
+            $this->addError('save_error', 'Database error: ' . $e->getMessage());
+            return;
         }
 
         return $this->redirectRoute('admin.products', navigate: true);

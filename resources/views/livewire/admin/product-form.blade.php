@@ -22,8 +22,27 @@
         </div>
     </header>
 
-    <form class="admin-form" wire:submit="save">
+    <form
+        class="admin-form"
+        wire:submit="save"
+        x-data
+        @form-error.window="setTimeout(() => { const el = document.getElementById('error-summary') || document.querySelector('.form-error'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120)"
+    >
         <div class="admin-form-main" style="max-width:960px;margin:0 auto;box-shadow:0 4px 24px rgba(28, 17, 12, 0.04);border:1px solid #ebe7df;border-radius:14px;padding:2.5rem;background:#ffffff;">
+
+            @if ($errors->any())
+                <div id="error-summary" style="background:#fef2f2;border:1px solid #f87171;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:2rem;">
+                    <div style="display:flex;align-items:center;gap:0.6rem;color:#991b1b;margin-bottom:0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <strong style="font-size:0.95rem;">Please correct the following before saving this piece:</strong>
+                    </div>
+                    <ul style="margin:0;padding-left:1.5rem;color:#7f1d1d;font-size:0.85rem;line-height:1.7;">
+                        @foreach ($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <!-- SECTION 1: PIECE IDENTITY -->
             <div>
@@ -195,6 +214,7 @@
                                     </span>
                                 @endif
                             </div>
+                            @error('price') <p class="form-error" style="margin-top:0.4rem;">{{ $message }}</p> @enderror
                         </div>
 
                         @if ((int)$discount_percent > 0 && (int)$original_price > 0)
@@ -677,6 +697,12 @@
 
             <!-- SECTION 6: STOREFRONT SIMULATION & ACTIONS -->
             <div style="border-top:1px solid #f0eee9;padding-top:2.5rem;margin-top:1.5rem;">
+                @if ($errors->any())
+                    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.9rem 1.25rem;color:#991b1b;font-size:0.85rem;display:flex;align-items:center;gap:0.65rem;margin-bottom:1.5rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span><strong>Cannot save piece:</strong> Please resolve the {{ $errors->count() }} {{ Str::plural('issue', $errors->count()) }} above ({{ $errors->first() }}).</span>
+                    </div>
+                @endif
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.5rem;">
                     <div>
                         <span style="font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);display:block;font-weight:600;">Status on Save</span>
