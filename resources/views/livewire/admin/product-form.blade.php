@@ -434,252 +434,205 @@
 
             <!-- SECTION 5: EDITORIAL IMAGERY & GALLERY -->
             <div style="border-top:1px solid #f0eee9;padding-top:2rem;">
-                <div style="border-bottom:1px solid #f0eee9;padding-bottom:1rem;margin-bottom:1.5rem;">
-                    <p class="eyebrow" style="margin-bottom:0.2rem;color:var(--terracotta,#b85d38);">Visual Showcase</p>
-                    <h2 style="font-family:var(--font-serif);font-size:1.6rem;margin:0;font-weight:500;color:#1c1917;">Imagery & Gallery</h2>
+                <div style="border-bottom:1px solid #f0eee9;padding-bottom:1rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;">
+                    <div>
+                        <p class="eyebrow" style="margin-bottom:0.2rem;color:var(--terracotta,#b85d38);">Visual Showcase</p>
+                        <h2 style="font-family:var(--font-serif);font-size:1.6rem;margin:0;font-weight:500;color:#1c1917;">Product Pictures & Gallery</h2>
+                    </div>
+                    @php
+                        $totalPics = (!empty($image) ? 1 : 0) + count($additionalImages);
+                    @endphp
+                    <span style="font-size:0.78rem;color:var(--muted);font-weight:500;">
+                        {{ $totalPics }} {{ Str::plural('picture', $totalPics) }} uploaded
+                    </span>
                 </div>
 
-                <div class="admin-media-grid" style="align-items:start;">
-                    <!-- Left: Uploaders & Inputs -->
+                <div class="admin-media-grid" style="align-items:start;display:grid;grid-template-columns:1fr 310px;gap:2rem;">
+                    <!-- Left: Upload Zone & Visual Gallery Previews Grid -->
                     <div style="display:flex;flex-direction:column;gap:1.5rem;">
 
-                        <!-- Primary Lead Image Upload Area -->
-                        <div style="background:#ffffff;border:1px solid #ebe7df;border-radius:12px;padding:1.35rem;box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
-                                <label style="font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;color:#1c1917;font-weight:600;margin:0;">
-                                    Primary Lead Cover Photo <span style="color:#b85d38;">*</span>
-                                </label>
-                                <button
-                                    type="button"
-                                    wire:click="$toggle('useUrlInput')"
-                                    style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:var(--muted);text-decoration:underline;padding:0;"
+                        <!-- Simple, Unified Upload Box -->
+                        <div
+                            x-data="{ isDropping: false, uploading: false, progress: 0 }"
+                            x-on:livewire-upload-start="uploading = true; progress = 0"
+                            x-on:livewire-upload-finish="uploading = false; progress = 100"
+                            x-on:livewire-upload-error="uploading = false"
+                            x-on:livewire-upload-progress="progress = $event.detail.progress"
+                            style="position:relative;"
+                        >
+                            <label
+                                for="productPhotosInput"
+                                style="display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #d7d1c5;border-radius:12px;padding:2.25rem 1.5rem;text-align:center;background:#faf8f5;cursor:pointer;transition:all 0.2s;"
+                                :style="isDropping ? 'border-color:var(--terracotta,#b85d38);background:#fefbf9;' : ''"
+                                @dragover.prevent="isDropping = true"
+                                @dragleave.prevent="isDropping = false"
+                                @drop="isDropping = false"
+                            >
+                                <div style="width:52px;height:52px;border-radius:50%;background:#ffffff;border:1px solid #ebe7df;display:flex;align-items:center;justify-content:center;margin-bottom:0.85rem;box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--terracotta,#b85d38);">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                </div>
+                                <strong style="display:block;font-size:0.95rem;color:#1c1917;margin-bottom:0.35rem;font-weight:600;">
+                                    Click to choose pictures or drag & drop here
+                                </strong>
+                                <span style="font-size:0.78rem;color:var(--muted);display:block;line-height:1.4;">
+                                    Upload single or multiple images · JPG, PNG, WEBP, AVIF · <strong>Up to 100MB each</strong>
+                                </span>
+                                <input
+                                    id="productPhotosInput"
+                                    type="file"
+                                    wire:model="photos"
+                                    multiple
+                                    accept="image/*"
+                                    style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"
                                 >
-                                    {{ $useUrlInput ? '← Switch to File Upload' : 'Paste Image URL instead' }}
-                                </button>
+                            </label>
+
+                            <!-- Real-time Upload Progress Bar -->
+                            <div x-show="uploading" style="margin-top:0.85rem;background:#f5efe6;border:1px solid #ebe4da;padding:0.85rem 1.15rem;border-radius:8px;" x-cloak>
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;font-size:0.78rem;">
+                                    <span style="font-weight:600;color:#1c1917;">Uploading images to atelier library...</span>
+                                    <span x-text="`${progress}%`" style="font-family:monospace;font-weight:600;color:var(--terracotta,#b85d38);"></span>
+                                </div>
+                                <div style="height:6px;width:100%;background:#e5ded3;border-radius:999px;overflow:hidden;">
+                                    <div style="height:100%;background:var(--terracotta,#b85d38);transition:width 0.2s;" :style="`width: ${progress}%`"></div>
+                                </div>
                             </div>
-
-                            @if (! $useUrlInput)
-                                <!-- Drag & Drop / File Input Box with Progress -->
-                                <div
-                                    x-data="{ isDropping: false, uploading: false, progress: 0 }"
-                                    x-on:livewire-upload-start="uploading = true; progress = 0"
-                                    x-on:livewire-upload-finish="uploading = false; progress = 100"
-                                    x-on:livewire-upload-error="uploading = false"
-                                    x-on:livewire-upload-progress="progress = $event.detail.progress"
-                                    style="position:relative;"
-                                >
-                                    <label
-                                        for="primaryUpload"
-                                        style="display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #d7d1c5;border-radius:10px;padding:1.75rem 1.25rem;text-align:center;background:#faf8f5;cursor:pointer;transition:all 0.2s;"
-                                        :style="isDropping ? 'border-color:var(--terracotta,#b85d38);background:#fefbf9;' : ''"
-                                        @dragover.prevent="isDropping = true"
-                                        @dragleave.prevent="isDropping = false"
-                                        @drop="isDropping = false"
-                                    >
-                                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--terracotta,#b85d38);margin-bottom:0.75rem;">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="17 8 12 3 7 8"></polyline>
-                                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                                        </svg>
-                                        <strong style="display:block;font-size:0.9rem;color:#1c1917;margin-bottom:0.25rem;font-weight:600;">
-                                            Choose an image file or drag & drop here
-                                        </strong>
-                                        <span style="font-size:0.75rem;color:var(--muted);display:block;line-height:1.4;">
-                                            Supports JPG, PNG, WEBP, AVIF, GIF · <strong>Up to 100MB</strong>
-                                        </span>
-                                        <input
-                                            id="primaryUpload"
-                                            type="file"
-                                            wire:model="primaryUpload"
-                                            accept="image/*"
-                                            style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"
-                                        >
-                                    </label>
-
-                                    <!-- Real-time Upload Progress Bar -->
-                                    <div x-show="uploading" style="margin-top:0.85rem;background:#f5efe6;border:1px solid #ebe4da;padding:0.75rem 1rem;border-radius:6px;" x-cloak>
-                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;font-size:0.75rem;">
-                                            <span style="font-weight:600;color:#1c1917;">Uploading photo to atelier folder...</span>
-                                            <span x-text="`${progress}%`" style="font-family:monospace;font-weight:600;color:var(--terracotta,#b85d38);"></span>
-                                        </div>
-                                        <div style="height:6px;width:100%;background:#e5ded3;border-radius:999px;overflow:hidden;">
-                                            <div style="height:100%;background:var(--terracotta,#b85d38);transition:width 0.2s;" :style="`width: ${progress}%`"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <!-- URL fallback input -->
-                                <div>
-                                    <input
-                                        id="p-image"
-                                        type="url"
-                                        wire:model.live.debounce.400ms="image"
-                                        placeholder="https://images.unsplash.com/... or Google Drive link"
-                                    >
-                                    <span class="note" style="font-size:0.75rem;margin-top:0.35rem;display:block;color:var(--muted);">
-                                        Direct image URL or Google Drive link.
-                                    </span>
-                                </div>
-                            @endif
-
-                            @if ($image)
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.85rem;padding:0.6rem 0.85rem;background:#f5efe6;border-radius:6px;border:1px solid #ebe4da;gap:0.75rem;">
-                                    <div style="display:flex;align-items:center;gap:0.65rem;overflow:hidden;">
-                                        <img src="{{ $image }}" alt="" style="width:36px;height:48px;object-fit:cover;border-radius:4px;border:1px solid #dcd3c5;" onerror="this.onerror=null;this.src='{{ asset('assets/brand-guide.png') }}'">
-                                        <div style="overflow:hidden;">
-                                            <span style="display:block;font-size:0.78rem;font-weight:600;color:#1c1917;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">
-                                                Current Lead Cover
-                                            </span>
-                                            <span style="display:block;font-size:0.7rem;color:var(--muted);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-family:monospace;">
-                                                {{ Str::limit($image, 40) }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        wire:click="removePrimaryImage"
-                                        class="btn btn-ghost"
-                                        style="font-size:0.72rem;padding:0.35rem 0.65rem;color:#93291e;border-color:#f2c3be;white-space:nowrap;"
-                                    >
-                                        Remove Photo
-                                    </button>
-                                </div>
-                            @endif
-
-                            @error('primaryUpload') <p class="form-error" style="margin-top:0.4rem;">{{ $message }}</p> @enderror
-                            @error('image') <p class="form-error" style="margin-top:0.4rem;">{{ $message }}</p> @enderror
                         </div>
 
-                        <!-- Additional Gallery Angles Upload Area -->
-                        <div style="background:var(--ivory,#faf8f5);border:1px solid #ebe7df;border-radius:12px;padding:1.35rem;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
-                                <label style="font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;color:#1c1917;font-weight:600;margin:0;">
-                                    Additional Angles & Detail Shots
+                        @error('photos.*') <p class="form-error">{{ $message }}</p> @enderror
+                        @error('image') <p class="form-error">{{ $message }}</p> @enderror
+
+                        <!-- Quick URL Alternative Input -->
+                        <div style="background:#ffffff;border:1px solid #ebe7df;border-radius:10px;padding:0.85rem 1.15rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                                <label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0;">
+                                    Or Add Image Via URL / Link
                                 </label>
-                                <span style="font-size:0.72rem;color:var(--muted);">
-                                    {{ count($additionalImages) }} {{ Str::plural('angle', count($additionalImages)) }} added
-                                </span>
                             </div>
-
-                            <!-- Multi-file Upload for Additional Angles with Progress -->
-                            <div
-                                x-data="{ isDropping: false, uploading: false, progress: 0 }"
-                                x-on:livewire-upload-start="uploading = true; progress = 0"
-                                x-on:livewire-upload-finish="uploading = false; progress = 100"
-                                x-on:livewire-upload-error="uploading = false"
-                                x-on:livewire-upload-progress="progress = $event.detail.progress"
-                                style="position:relative;margin-bottom:1rem;"
-                            >
-                                <label
-                                    for="additionalUploads"
-                                    style="display:flex;align-items:center;justify-content:center;gap:0.75rem;border:2px dashed #d7d1c5;border-radius:8px;padding:1.15rem 1rem;text-align:center;background:#ffffff;cursor:pointer;transition:all 0.2s;"
-                                    :style="isDropping ? 'border-color:var(--terracotta,#b85d38);background:#fefbf9;' : ''"
-                                    @dragover.prevent="isDropping = true"
-                                    @dragleave.prevent="isDropping = false"
-                                    @drop="isDropping = false"
-                                >
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--terracotta,#b85d38);flex-shrink:0;">
-                                        <path d="M12 5v14M5 12h14"/>
-                                    </svg>
-                                    <div style="text-align:left;">
-                                        <strong style="display:block;font-size:0.82rem;color:#1c1917;">
-                                            + Upload more angles or detail shots
-                                        </strong>
-                                        <span style="font-size:0.72rem;color:var(--muted);display:block;">
-                                            Select one or multiple photos (up to 100MB each)
-                                        </span>
-                                    </div>
-                                    <input
-                                        id="additionalUploads"
-                                        type="file"
-                                        wire:model="additionalUploads"
-                                        multiple
-                                        accept="image/*"
-                                        style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"
-                                    >
-                                </label>
-
-                                <!-- Real-time Upload Progress Bar for Additional Uploads -->
-                                <div x-show="uploading" style="margin-top:0.6rem;background:#f5efe6;border:1px solid #ebe4da;padding:0.65rem 0.85rem;border-radius:6px;" x-cloak>
-                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;font-size:0.75rem;">
-                                        <span style="font-weight:600;color:#1c1917;">Uploading additional angles...</span>
-                                        <span x-text="`${progress}%`" style="font-family:monospace;font-weight:600;color:var(--terracotta,#b85d38);"></span>
-                                    </div>
-                                    <div style="height:5px;width:100%;background:#e5ded3;border-radius:999px;overflow:hidden;">
-                                        <div style="height:100%;background:var(--terracotta,#b85d38);transition:width 0.2s;" :style="`width: ${progress}%`"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            @error('additionalUploads.*') <p class="form-error" style="margin-bottom:0.75rem;">{{ $message }}</p> @enderror
-
-                            <!-- URL alternative option for additional angles -->
-                            <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem;">
+                            <div style="display:flex;gap:0.5rem;">
                                 <input
                                     type="url"
                                     wire:model="newImageUrl"
-                                    wire:keydown.enter.prevent="addAdditionalImage"
-                                    placeholder="Or paste an image URL here..."
+                                    wire:keydown.enter.prevent="addImageUrl"
+                                    placeholder="Paste image URL (e.g. Unsplash, Google Drive link)..."
                                     style="margin:0;font-size:0.82rem;"
                                 >
                                 <button
                                     type="button"
                                     class="btn btn-ghost"
-                                    wire:click="addAdditionalImage"
-                                    style="padding:0.55rem 0.9rem;font-size:0.75rem;white-space:nowrap;"
+                                    wire:click="addImageUrl"
+                                    style="padding:0.55rem 1rem;font-size:0.75rem;white-space:nowrap;font-weight:600;"
                                 >
                                     + Add URL
                                 </button>
                             </div>
+                        </div>
 
-                            @if (! empty($additionalImages))
-                                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(90px, 1fr));gap:0.65rem;margin-top:0.75rem;">
-                                    @foreach ($additionalImages as $idx => $extraImg)
-                                        <div style="position:relative;aspect-ratio:3/4;border:1px solid #ebe7df;border-radius:6px;overflow:hidden;background:#ffffff;" class="admin-angle-card">
+                        <!-- All Uploaded Images Preview Grid with Featured Selector -->
+                        @php
+                            $allImgs = array_values(array_unique(array_filter(array_merge([$image], $additionalImages))));
+                        @endphp
+
+                        @if (! empty($allImgs))
+                            <div style="background:#ffffff;border:1px solid #ebe7df;border-radius:12px;padding:1.35rem;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+                                    <div>
+                                        <h3 style="font-size:0.95rem;font-weight:600;margin:0;color:#1c1917;">
+                                            Uploaded Pictures ({{ count($allImgs) }})
+                                        </h3>
+                                        <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0;">
+                                            The starred picture is your <strong>Featured Image</strong> (lead cover). Click <strong>"★ Make Featured"</strong> on any picture to select it as the featured cover.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:0.85rem;">
+                                    @foreach ($allImgs as $imgUrl)
+                                        @php
+                                            $isFeatured = ($imgUrl === $image);
+                                        @endphp
+                                        <div
+                                            style="position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:#faf8f5;transition:all 0.2s;{{ $isFeatured ? 'border: 2.5px solid var(--terracotta,#b85d38);box-shadow: 0 4px 14px rgba(184, 93, 56, 0.25);' : 'border: 1px solid #ebe7df;' }}"
+                                            class="admin-photo-card"
+                                        >
                                             <img
-                                                src="{{ $extraImg }}"
-                                                alt=""
+                                                src="{{ $imgUrl }}"
+                                                alt="Piece image"
                                                 style="width:100%;height:100%;object-fit:cover;"
                                                 onerror="this.onerror=null;this.src='{{ asset('assets/brand-guide.png') }}'"
                                             >
-                                            <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s;display:flex;flex-direction:column;justify-content:space-between;padding:0.35rem;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
-                                                <button
-                                                    type="button"
-                                                    wire:click="removeAdditionalImage({{ $idx }})"
-                                                    style="align-self:flex-end;background:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:0.85rem;cursor:pointer;color:#93291e;line-height:1;display:flex;align-items:center;justify-content:center;"
-                                                    title="Remove image"
-                                                >&times;</button>
-                                                <button
-                                                    type="button"
-                                                    wire:click="makePrimaryImage({{ $idx }})"
-                                                    style="background:#fff;border:none;border-radius:4px;font-size:0.62rem;padding:0.25rem 0.35rem;cursor:pointer;color:#1c1917;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;"
-                                                    title="Set as primary cover"
-                                                >Set Lead</button>
+
+                                            <!-- Top Status Badge -->
+                                            @if ($isFeatured)
+                                                <div style="position:absolute;top:6px;left:6px;background:var(--terracotta,#b85d38);color:#ffffff;font-size:0.62rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:4px;display:flex;align-items:center;gap:0.25rem;box-shadow:0 2px 6px rgba(0,0,0,0.25);">
+                                                    ★ Featured
+                                                </div>
+                                            @endif
+
+                                            <!-- Delete Button -->
+                                            <button
+                                                type="button"
+                                                wire:click="removeImage('{{ addslashes($imgUrl) }}')"
+                                                style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,0.95);border:none;border-radius:50%;width:24px;height:24px;font-size:0.95rem;cursor:pointer;color:#93291e;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);"
+                                                title="Remove this photo"
+                                            >
+                                                &times;
+                                            </button>
+
+                                            <!-- Bottom Action Bar / Overlay -->
+                                            <div style="position:absolute;bottom:0;left:0;right:0;padding:0.45rem;background:linear-gradient(transparent, rgba(0,0,0,0.7));display:flex;justify-content:center;">
+                                                @if ($isFeatured)
+                                                    <span style="font-size:0.65rem;color:#ffffff;font-weight:600;letter-spacing:0.03em;">
+                                                        Lead Cover
+                                                    </span>
+                                                @else
+                                                    <button
+                                                        type="button"
+                                                        wire:click="setFeaturedImage('{{ addslashes($imgUrl) }}')"
+                                                        style="background:#ffffff;color:#1c1917;border:none;border-radius:4px;font-size:0.65rem;font-weight:600;padding:0.25rem 0.6rem;cursor:pointer;letter-spacing:0.03em;box-shadow:0 2px 4px rgba(0,0,0,0.2);"
+                                                    >
+                                                        ★ Make Featured
+                                                    </button>
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
                                 </div>
-                            @else
-                                <p style="font-size:0.75rem;color:var(--muted);margin:0;">No additional angles added yet.</p>
-                            @endif
-                        </div>
+                            </div>
+                        @else
+                            <div style="background:#faf8f5;border:1px dashed #d7d1c5;border-radius:10px;padding:2rem;text-align:center;color:var(--muted);">
+                                <p style="margin:0;font-size:0.85rem;">No pictures uploaded yet. Choose files above to preview and select your featured cover.</p>
+                            </div>
+                        @endif
+
                     </div>
 
-                    <!-- Right: Lead Cover Preview Card -->
+                    <!-- Right Column: Live Featured Cover Showcase Preview -->
                     <div>
-                        <label style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem;font-weight:600;">
-                            Lead Cover Preview (3:4 Editorial Portrait)
+                        <label style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.5rem;font-weight:600;">
+                            Storefront Lead Cover Preview
                         </label>
-                        <figure style="aspect-ratio:3/4;border:1px solid #ebe7df;border-radius:10px;overflow:hidden;background:var(--ivory,#faf8f5);display:flex;align-items:center;justify-content:center;position:relative;margin:0;box-shadow:0 6px 20px rgba(0,0,0,0.04);">
+                        <figure style="aspect-ratio:3/4;border:1px solid #ebe7df;border-radius:12px;overflow:hidden;background:var(--ivory,#faf8f5);display:flex;align-items:center;justify-content:center;position:relative;margin:0;box-shadow:0 6px 20px rgba(0,0,0,0.04);">
                             @if ($image)
                                 <img
                                     src="{{ $image }}"
-                                    alt="Lead Cover"
+                                    alt="Lead Cover Preview"
                                     style="width:100%;height:100%;object-fit:cover;"
                                     onerror="this.onerror=null;this.src='{{ asset('assets/brand-guide.png') }}'"
                                 >
-                                <span style="position:absolute;top:10px;left:10px;background:rgba(28,17,12,0.8);color:#fff;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.25rem 0.55rem;border-radius:4px;backdrop-filter:blur(4px);">
-                                    Primary Lead Cover
-                                </span>
+                                <div style="position:absolute;top:10px;left:10px;background:rgba(28,17,12,0.85);color:#fff;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:0.25rem 0.6rem;border-radius:4px;backdrop-filter:blur(4px);display:flex;align-items:center;gap:0.3rem;">
+                                    ★ Featured Cover
+                                </div>
+                                <div style="position:absolute;bottom:0;left:0;right:0;padding:0.85rem 1rem;background:linear-gradient(transparent, rgba(28,17,12,0.8));color:#ffffff;">
+                                    <span style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;opacity:0.85;display:block;">Lead Storefront Photo</span>
+                                    <strong style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">
+                                        {{ $name ?: 'New Piece' }}
+                                    </strong>
+                                </div>
                             @else
                                 <div style="text-align:center;padding:2rem;color:var(--muted);">
                                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="opacity:0.35;margin-bottom:0.75rem;color:var(--muted);">
@@ -687,7 +640,10 @@
                                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                         <polyline points="21 15 16 10 5 21"></polyline>
                                     </svg>
-                                    <p style="font-size:0.8rem;margin:0;color:var(--muted);">No primary photo uploaded yet</p>
+                                    <p style="font-size:0.82rem;margin:0;color:var(--muted);font-weight:500;">No featured photo selected</p>
+                                    <span style="font-size:0.72rem;color:var(--muted);opacity:0.8;display:block;margin-top:0.25rem;">
+                                        Upload images on the left to set your featured cover
+                                    </span>
                                 </div>
                             @endif
                         </figure>

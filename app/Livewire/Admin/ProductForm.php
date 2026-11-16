@@ -71,6 +71,8 @@ class ProductForm extends Component
 
     public $additionalUploads = [];
 
+    public $photos = [];
+
     public string $newImageUrl = '';
 
     public bool $useUrlInput = false;
@@ -320,6 +322,103 @@ class ProductForm extends Component
     }
 
     // Step 4 handlers: Media
+    public function updatedPhotos(): void
+    {
+        $this->validate([
+            'photos.*' => 'required|file|image|max:102400',
+        ], [
+            'photos.*.image' => 'Each file must be an image (JPEG, PNG, WEBP, AVIF, GIF).',
+            'photos.*.max' => 'Each image size may not exceed 100MB.',
+        ]);
+
+        $this->storePhotos();
+    }
+
+    public function storePhotos(): void
+    {
+        if (empty($this->photos)) {
+            return;
+        }
+
+        $folder = public_path('uploads/products');
+        if (! file_exists($folder)) {
+            File::makeDirectory($folder, 0755, true, true);
+        }
+
+        foreach ($this->photos as $file) {
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            $safeName = Str::slug(Str::ascii($this->name ?: 'piece')) ?: 'piece';
+            $filename = $safeName . '-' . Str::random(8) . '.' . strtolower($extension);
+            $target = $folder . '/' . $filename;
+
+            $sourcePath = method_exists($file, 'getRealPath') && file_exists($file->getRealPath())
+                ? $file->getRealPath()
+                : $file->path();
+
+            File::copy($sourcePath, $target);
+            @chmod($target, 0664);
+
+            try {
+                if (method_exists($file, 'delete')) {
+                    $file->delete();
+                }
+            } catch (\Throwable $e) {
+                // ignore temp cleanup error
+            }
+
+            $url = '/uploads/products/' . $filename;
+
+            if (empty($this->image)) {
+                $this->image = $url;
+            } elseif (! in_array($url, $this->additionalImages, true)) {
+                $this->additionalImages[] = $url;
+            }
+        }
+
+        $this->photos = [];
+        $this->dispatch('toast', message: 'Pictures uploaded successfully.');
+    }
+
+    public function setFeaturedImage(string $url): void
+    {
+        if ($this->image === $url) {
+            return;
+        }
+
+        $all = array_values(array_unique(array_filter(array_merge([$this->image], $this->additionalImages))));
+        if (in_array($url, $all, true)) {
+            $this->image = $url;
+            $this->additionalImages = array_values(array_filter($all, fn ($img) => $img !== $url));
+            $this->dispatch('toast', message: 'Featured image updated.');
+        }
+    }
+
+    public function removeImage(string $url): void
+    {
+        if ($this->image === $url) {
+            $this->image = array_shift($this->additionalImages) ?? '';
+        } else {
+            $this->additionalImages = array_values(array_filter($this->additionalImages, fn ($img) => $img !== $url));
+        }
+
+        $this->dispatch('toast', message: 'Picture removed.');
+    }
+
+    public function addImageUrl(): void
+    {
+        $clean = trim($this->newImageUrl);
+        if ($clean !== '') {
+            $clean = Product::normalizeImageUrl($clean);
+            if (empty($this->image)) {
+                $this->image = $clean;
+            } elseif ($clean !== $this->image && ! in_array($clean, $this->additionalImages, true)) {
+                $this->additionalImages[] = $clean;
+            }
+            $this->newImageUrl = '';
+            $this->dispatch('toast', message: 'Picture URL added.');
+        }
+    }
+
     public function updatedPrimaryUpload(): void
     {
         $this->validate([
@@ -556,11 +655,12 @@ class ProductForm extends Component
                 'selectedSizes.min' => 'Please select at least one size for this piece.',
             ]);
         } elseif ($step === 4) {
+            $this->storePhotos();
             $this->storePrimaryUpload();
             $this->validate([
                 'image' => 'required|string|max:600',
             ], [
-                'image.required' => 'Please upload or provide a primary lead cover image for this piece.',
+                'image.required' => 'Please upload or select at least one photo for this piece.',
             ]);
         }
 
@@ -573,6 +673,7 @@ class ProductForm extends Component
             $this->status = $overrideStatus;
         }
 
+        $this->storePhotos();
         $this->storePrimaryUpload();
         $this->storeAdditionalUploads();
 
