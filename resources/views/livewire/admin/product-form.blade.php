@@ -506,32 +506,6 @@
                         @error('photos.*') <p class="form-error">{{ $message }}</p> @enderror
                         @error('image') <p class="form-error">{{ $message }}</p> @enderror
 
-                        <!-- Quick URL Alternative Input -->
-                        <div style="background:#ffffff;border:1px solid #ebe7df;border-radius:10px;padding:0.85rem 1.15rem;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
-                                <label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0;">
-                                    Or Add Image Via URL / Link
-                                </label>
-                            </div>
-                            <div style="display:flex;gap:0.5rem;">
-                                <input
-                                    type="url"
-                                    wire:model="newImageUrl"
-                                    wire:keydown.enter.prevent="addImageUrl"
-                                    placeholder="Paste image URL (e.g. Unsplash, Google Drive link)..."
-                                    style="margin:0;font-size:0.82rem;"
-                                >
-                                <button
-                                    type="button"
-                                    class="btn btn-ghost"
-                                    wire:click="addImageUrl"
-                                    style="padding:0.55rem 1rem;font-size:0.75rem;white-space:nowrap;font-weight:600;"
-                                >
-                                    + Add URL
-                                </button>
-                            </div>
-                        </div>
-
                         <!-- All Uploaded Images Preview Grid with Featured Selector -->
                         @php
                             $allImgs = array_values(array_unique(array_filter(array_merge([$image], $additionalImages))));
