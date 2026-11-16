@@ -39,13 +39,13 @@ class ProductForm extends Component
     // Step 2: Pricing & Commission
     public string $original_price = '';
 
-    public int $discount_percent = 0;
+    public int|string $discount_percent = 0;
 
     public string $price = '';
 
     public string $commission_type = 'percent';
 
-    public int $commission_rate = 10;
+    public int|string $commission_rate = 10;
 
     // Step 3: Sizes & Inventory
     public string $sizeMode = 'letter'; // 'letter', 'number', 'custom'
@@ -171,24 +171,57 @@ class ProductForm extends Component
     }
 
     // Step 2 handlers: Pricing & Commission
+    public function updatedPrice(): void
+    {
+        $selling = (int) $this->price;
+        $orig = (int) $this->original_price;
+        $disc = (int) $this->discount_percent;
+
+        if ($orig > $selling && $selling > 0) {
+            $this->discount_percent = (int) round((($orig - $selling) / $orig) * 100);
+        } elseif ($disc === 0 || $orig < $selling) {
+            $this->original_price = $this->price;
+            $this->discount_percent = 0;
+        }
+    }
+
     public function updatedOriginalPrice(): void
     {
         $orig = (int) $this->original_price;
-        $currPrice = (int) $this->price;
-        if ($orig > $currPrice && $currPrice > 0 && $this->discount_percent === 0) {
-            $this->discount_percent = (int) round((($orig - $currPrice) / $orig) * 100);
+        $selling = (int) $this->price;
+        $disc = (int) $this->discount_percent;
+
+        if ($orig > 0 && $disc > 0) {
+            $this->price = (string) max(100, (int) round($orig * (1 - ($disc / 100))));
+        } elseif ($orig > 0 && $selling > 0 && $orig > $selling) {
+            $this->discount_percent = (int) round((($orig - $selling) / $orig) * 100);
+        } elseif (empty($this->price) && $orig > 0) {
+            $this->price = (string) $orig;
         }
-        $this->computePrice();
     }
 
-    public function updatedPrice(): void
+    public function setDiscount(int $percent): void
     {
+        $this->discount_percent = max(0, min(95, $percent));
+
         $orig = (int) $this->original_price;
-        $currPrice = (int) $this->price;
-        if ($orig > $currPrice && $currPrice > 0) {
-            $this->discount_percent = (int) round((($orig - $currPrice) / $orig) * 100);
-        } elseif ($this->discount_percent === 0 || empty($this->original_price)) {
-            $this->original_price = $this->price;
+        $selling = (int) $this->price;
+
+        if ($this->discount_percent === 0) {
+            if ($orig > 0) {
+                $this->price = (string) $orig;
+            } elseif ($selling > 0) {
+                $this->original_price = (string) $selling;
+            }
+
+            return;
+        }
+
+        if ($orig <= 0 && $selling > 0) {
+            $orig = (int) round($selling / (1 - ($this->discount_percent / 100)));
+            $this->original_price = (string) $orig;
+        } elseif ($orig > 0) {
+            $this->price = (string) max(100, (int) round($orig * (1 - ($this->discount_percent / 100))));
         }
     }
 
@@ -201,20 +234,20 @@ class ProductForm extends Component
     public function computePrice(): void
     {
         $orig = (int) $this->original_price;
+        $disc = (int) $this->discount_percent;
+
         if ($orig <= 0) {
             if ((int) $this->price > 0) {
                 $this->original_price = $this->price;
                 $orig = (int) $this->original_price;
             } else {
-                $this->price = '';
-
                 return;
             }
         }
 
-        if ($this->discount_percent > 0) {
-            $calc = (int) round($orig * (1 - ($this->discount_percent / 100)));
-            $this->price = (string) max(0, $calc);
+        if ($disc > 0) {
+            $calc = (int) round($orig * (1 - ($disc / 100)));
+            $this->price = (string) max(100, $calc);
         } else {
             $this->price = (string) $orig;
         }
@@ -244,11 +277,12 @@ class ProductForm extends Component
     public function getCalculatedCommissionProperty(): int
     {
         $price = (int) $this->price;
+        $rate = (int) ($this->commission_rate ?: 10);
         if ($this->commission_type === 'fixed') {
-            return (int) min($this->commission_rate, $price);
+            return (int) min($rate, $price);
         }
 
-        return (int) round(($price * $this->commission_rate) / 100);
+        return (int) round(($price * $rate) / 100);
     }
 
     // Step 3 handlers: Sizing & Stock
@@ -624,18 +658,19 @@ class ProductForm extends Component
             if (empty($this->original_price) && (int) $this->price > 0) {
                 $this->original_price = $this->price;
             }
-            $this->computePrice();
+            if (empty($this->price) && (int) $this->original_price > 0) {
+                $this->price = $this->original_price;
+            }
             $this->validate([
-                'original_price' => 'required|integer|min:100',
-                'discount_percent' => 'required|integer|min:0|max:95',
                 'price' => 'required|integer|min:100',
+                'original_price' => 'nullable|integer|min:100',
+                'discount_percent' => 'nullable|integer|min:0|max:95',
                 'commission_type' => 'required|in:percent,percentage,fixed',
                 'commission_rate' => 'required|integer|min:1',
             ], [
-                'original_price.required' => 'Please enter the retail/original price.',
-                'original_price.min' => 'The price must be at least ₦100.',
-                'price.required' => 'The selling price is required.',
+                'price.required' => 'Please enter the retail selling price.',
                 'price.min' => 'The selling price must be at least ₦100.',
+                'original_price.min' => 'The compare-at price must be at least ₦100.',
                 'commission_rate.required' => 'The commission rate is required.',
                 'commission_rate.min' => 'The commission rate must be at least 1.',
             ]);
@@ -715,7 +750,7 @@ class ProductForm extends Component
             'quantity' => $totalQty,
             'size_inventory' => $cleanSizeInventory,
             'commission_type' => $this->commission_type,
-            'commission_rate' => (int) $this->commission_rate,
+            'commission_rate' => (int) ($this->commission_rate ?: 10),
             'size_mode' => $this->sizeMode,
             'sizes' => array_values($this->selectedSizes),
             'description' => $this->description,

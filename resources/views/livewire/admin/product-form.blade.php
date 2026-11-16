@@ -147,9 +147,25 @@
                 <div style="display:grid;gap:1.35rem;">
                     <div class="admin-form-split">
                         <div>
+                            <label for="p-price">
+                                Retail Selling Price (₦) <span style="color:#b85d38;">*</span>
+                                <small style="opacity:0.7;font-weight:normal;text-transform:none;">(The actual checkout price customers pay)</small>
+                            </label>
+                            <input
+                                id="p-price"
+                                type="number"
+                                min="100"
+                                step="100"
+                                wire:model.live.debounce.300ms="price"
+                                placeholder="e.g. 55000"
+                            >
+                            @error('price') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
                             <label for="p-original-price">
-                                Original Price (₦)
-                                <small style="opacity:0.7;font-weight:normal;text-transform:none;">(Reference price before discount)</small>
+                                Original Reference Price (₦)
+                                <small style="opacity:0.7;font-weight:normal;text-transform:none;">(Optional strike-through compare-at price)</small>
                             </label>
                             <input
                                 id="p-original-price"
@@ -157,50 +173,51 @@
                                 min="100"
                                 step="100"
                                 wire:model.live.debounce.300ms="original_price"
-                                placeholder="e.g. 85000"
+                                placeholder="Leave empty if regular price"
                             >
                             @error('original_price') <p class="form-error">{{ $message }}</p> @enderror
                         </div>
-
-                        <div>
-                            <label for="p-discount-percent">
-                                Discount Percentage (%)
-                                <small style="opacity:0.7;font-weight:normal;text-transform:none;">(0% = no discount)</small>
-                            </label>
-                            <div style="display:flex;gap:0.5rem;align-items:center;">
-                                <input
-                                    id="p-discount-percent"
-                                    type="number"
-                                    min="0"
-                                    max="95"
-                                    step="1"
-                                    wire:model.live="discount_percent"
-                                    placeholder="0"
-                                    style="max-width:120px;"
-                                >
-                                <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
-                                    @foreach ([0, 10, 15, 20, 25, 30, 50] as $preset)
-                                        <button
-                                            type="button"
-                                            class="chip {{ (int)$discount_percent === $preset ? 'active' : '' }}"
-                                            wire:click="$set('discount_percent', {{ $preset }})"
-                                            style="font-size:0.72rem;padding:0.25rem 0.55rem;"
-                                        >
-                                            {{ $preset }}%
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                            @error('discount_percent') <p class="form-error">{{ $message }}</p> @enderror
-                        </div>
                     </div>
 
-                    <!-- Live Calculated Selling Price Card -->
-                    <div style="background:var(--ivory,#faf8f5);border:1px solid #ebe7df;border-radius:10px;padding:1.35rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+                    <!-- Discount Presets Bar -->
+                    <div style="background:#ffffff;border:1px solid #ebe7df;border-radius:10px;padding:1.15rem 1.35rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.65rem;">
+                            <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);">
+                                Promotional Discount
+                            </span>
+                            @if ((int)$discount_percent > 0)
+                                <span style="font-size:0.75rem;color:#2e5932;font-weight:600;">
+                                    {{ $discount_percent }}% OFF Applied
+                                </span>
+                            @else
+                                <span style="font-size:0.75rem;color:var(--muted);">
+                                    Standard Retail (No Discount)
+                                </span>
+                            @endif
+                        </div>
+
+                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                            <span style="font-size:0.75rem;color:var(--muted);">Quick apply:</span>
+                            @foreach ([0 => 'No discount', 10 => '10% OFF', 15 => '15% OFF', 20 => '20% OFF', 25 => '25% OFF', 30 => '30% OFF', 50 => '50% OFF'] as $pct => $label)
+                                <button
+                                    type="button"
+                                    class="chip {{ (int)$discount_percent === $pct ? 'active' : '' }}"
+                                    wire:click="setDiscount({{ $pct }})"
+                                    style="font-size:0.72rem;padding:0.3rem 0.65rem;border-radius:6px;"
+                                >
+                                    {{ $label }}
+                                </button>
+                            @endforeach
+                        </div>
+                        @error('discount_percent') <p class="form-error" style="margin-top:0.4rem;">{{ $message }}</p> @enderror
+                    </div>
+
+                    <!-- Live Calculated Selling Price & Customer Savings Card -->
+                    <div style="background:var(--ivory,#faf8f5);border:1px solid #ebe7df;border-radius:10px;padding:1.35rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.25rem;">
                         <div>
-                            <span style="font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);display:block;font-weight:600;">Customer Retail Selling Price</span>
-                            <div style="display:flex;align-items:baseline;gap:0.75rem;margin-top:0.3rem;">
-                                @if ((int)$discount_percent > 0 && (int)$original_price > 0)
+                            <span style="font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);display:block;font-weight:600;">Customer Retail Checkout Price</span>
+                            <div style="display:flex;align-items:baseline;gap:0.75rem;margin-top:0.35rem;">
+                                @if ((int)$discount_percent > 0 && (int)$original_price > (int)$price)
                                     <del style="opacity:0.55;font-size:1.15rem;color:var(--charcoal);">
                                         ₦{{ number_format((int)$original_price) }}
                                     </del>
@@ -208,21 +225,24 @@
                                 <strong style="font-family:var(--font-serif);font-size:2.2rem;color:var(--brown,#221f1e);font-weight:500;">
                                     ₦{{ number_format((int)$price) }}
                                 </strong>
-                                @if ((int)$discount_percent > 0)
+                                @if ((int)$discount_percent > 0 && (int)$original_price > (int)$price)
                                     <span class="admin-badge-discount" style="font-size:0.8rem;padding:0.25rem 0.65rem;border-radius:4px;font-weight:600;">
                                         -{{ $discount_percent }}% OFF
                                     </span>
                                 @endif
                             </div>
-                            @error('price') <p class="form-error" style="margin-top:0.4rem;">{{ $message }}</p> @enderror
                         </div>
 
-                        @if ((int)$discount_percent > 0 && (int)$original_price > 0)
+                        @if ((int)$discount_percent > 0 && (int)$original_price > (int)$price)
                             <div style="text-align:right;">
                                 <span style="font-size:0.72rem;color:var(--muted);display:block;">Customer Promotional Savings</span>
                                 <strong style="font-size:1.1rem;color:#2e5932;display:block;margin-top:0.15rem;">
                                     ₦{{ number_format((int)$original_price - (int)$price) }}
                                 </strong>
+                            </div>
+                        @else
+                            <div style="text-align:right;">
+                                <span style="font-size:0.75rem;color:var(--muted);">Regular Collection Pricing</span>
                             </div>
                         @endif
                     </div>
