@@ -42,6 +42,22 @@ class Executives extends Component
 
     public bool $send_invite = true;
 
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'statusFilter']);
+        $this->resetPage();
+    }
+
     public function openCreate(): void
     {
         $this->reset(['name', 'email', 'phone']);
@@ -87,6 +103,7 @@ class Executives extends Component
 
         $this->closeModals();
         session()->flash('admin_toast', "Executive {$executive->name} created and invited.");
+        $this->dispatch('toast', message: "Executive {$executive->name} created and invited.");
     }
 
     public function resendInvite(int $id): void
@@ -101,6 +118,7 @@ class Executives extends Component
         }
 
         session()->flash('admin_toast', "Invitation resent to {$executive->email}.");
+        $this->dispatch('toast', message: "Invitation resent to {$executive->email}.");
     }
 
     public function sendMagicLink(int $id): void
@@ -115,6 +133,7 @@ class Executives extends Component
         }
 
         session()->flash('admin_toast', "Magic login link dispatched to {$executive->email}.");
+        $this->dispatch('toast', message: "Magic login link dispatched to {$executive->email}.");
     }
 
     public function toggleStatus(int $id): void
@@ -124,6 +143,7 @@ class Executives extends Component
         $executive->update(['status' => $newStatus]);
 
         session()->flash('admin_toast', "Executive {$executive->name} is now {$newStatus}.");
+        $this->dispatch('toast', message: "Executive {$executive->name} is now {$newStatus}.");
     }
 
     public function viewExecutive(int $id): void
@@ -154,6 +174,25 @@ class Executives extends Component
             ]);
 
         session()->flash('admin_toast', 'All pending commissions marked as paid.');
+        $this->dispatch('toast', message: 'All pending commissions marked as paid.');
+    }
+
+    public function deleteExecutive(int $id): void
+    {
+        $executive = BusinessExecutive::query()->findOrFail($id);
+
+        if ($executive->orders()->exists() || $executive->commissions()->exists()) {
+            session()->flash('admin_toast', 'Cannot remove executive with existing sales or commissions history. You can suspend the account instead.');
+            $this->dispatch('toast', message: 'Cannot remove executive with sales history. Account can be suspended instead.');
+
+            return;
+        }
+
+        $name = $executive->name;
+        $executive->delete();
+        $this->closeModals();
+        session()->flash('admin_toast', "Executive {$name} removed.");
+        $this->dispatch('toast', message: "Executive {$name} removed.");
     }
 
     public function render()
